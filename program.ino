@@ -16,24 +16,27 @@ Servo servoSampah;
 //Define & SetUp LCD
 LiquidCrystal_I2C lcd = LiquidCrystal_I2C(0x27,16,2);
 
-const byte interruptPin = 2;
+//Define & SetUp Timer/Counter or Interrupt
+#define INT0 2
 
 void setup() 
 {
+  //Inisialisasi Servo
   servoSampah.attach(5);
   servoSampah.write(0);
 
+  //Inisialisasi Interrupt
+  pinMode(INT0, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(2), manual, RISING);
+  
+  //Inisialisasi LCD
   lcd.init();
   lcd.backlight();
-
-  Serial.begin(9600);
-  //pinMode(interruptPin, INPUT_PULLUP);
 }
 
 void loop() 
 {
   duration = sensorLuar.ping();
-  int test = trigg_pin;
   distance = (duration / 2) * 0.0343;
 
   if(distance<=10)
@@ -44,14 +47,12 @@ void loop()
   {
     servoSampah.write(0);
   }
-
-  Serial.println(test);
   delay(50);
 }
 
-void LCD() 
+void manual() 
 {
-  lcd.clear();
-  lcd.setCursor(0, 0); //set kolom dan baris
-  lcd.print("TEST");
+  servoSampah.write(180);
+  delay(10000);
+  servoSampah.write(0);
 }
