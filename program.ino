@@ -1,12 +1,12 @@
 //Import Library
 #include <NewPing.h>
-#include <Servo.h> 
+#include <ServoTimer2.h> 
 #include <LiquidCrystal_I2C.h>
 
 //Define or SetUp Sensor Luar
 #define trigg_pin1 4
 #define echo_pin1 3
-#define max_distance 200
+#define max_distance 100
 NewPing sensorLuar(trigg_pin1, echo_pin1, max_distance);
 float durationS1, distanceS1;
 
@@ -18,24 +18,19 @@ float durationS2;
 int distanceS2;
 
 //Define or SetUp Servo Motor
-Servo servoSampah;
+ServoTimer2 servoSampah;
 
 //Define or SetUp LCD
 LiquidCrystal_I2C lcd = LiquidCrystal_I2C(0x27,16,2);
 
-//Define or SetUp Timer/Counter & Interrupt
-#define INT0 2
-
-
+//Define or SetUp Timer/Counter, Interrupt, & Delay
+unsigned long prevTime = 0;
+unsigned long currTime = 0;
 void setup() 
 {
   //Inisialisasi Servo
   servoSampah.attach(5);
-  servoSampah.write(0);
-
-  //Inisialisasi Interrupt
-  pinMode(INT0, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(2), manual, RISING);
+  servoSampah.write(750);
   
   //Inisialisasi LCD
   lcd.init();
@@ -46,16 +41,27 @@ void setup()
   lcd.print("Otomatis");
   delay(3000);
   lcd.clear();
+
+  //Inisialisasi Timer1
+  noInterrupts();
+  TCCR1A = 0;
+  TCCR1B = 0;
+  TCNT1 = 49911;
+  TCCR1B |= (1 << CS10)|(1 << CS12);
+  TIMSK1 |= (1 << TOIE1);
+  interrupts();
+
 }
 
 void loop() 
 {
+  unsigned long currTime = millis();
   // Deteksi Jarak Dari Kedua Sensor
   durationS1 = sensorLuar.ping();
   distanceS1 = (durationS1 / 2) * 0.0343;
-
   durationS2 = sensorDalam.ping();
   distanceS2 = (((((durationS2 / 2) * 0.0343)-10)/30)*100); //asumsi tinggi tong sampah 30 cm
+
   
   if (distanceS2 <= 10) //asumsi tinggi tong sampah 30 cm
   {
@@ -63,7 +69,7 @@ void loop()
     lcd.print("Tong Sampah");
     lcd.setCursor(6, 1);
     lcd.print("Penuh");
-    distanceS1 = -1;
+    noInterrupts();
   }
   else if (distanceS2 > 10) 
   {
@@ -73,23 +79,20 @@ void loop()
     lcd.print(distanceS2);
     lcd.print("%");
   }
-  
-  // Jika Sensor Mendeteksi Orang Mendekati Tong Sampah dan Menjauhi Tong Sampah
-  if(distanceS1<=10 && distanceS1>=0)
-  {
-    servoSampah.write(180);
-    delay(4000);
-  }
-  else
-  {
-    servoSampah.write(0);
-  }
-  delay(50);
 }
 
-void manual() 
+ISR(TIMER1_OVF_vect)
 {
-  servoSampah.write(180);
-  delay(5000);
-  servoSampah.write(0);
+  TCNT1 = 49911;
+
+  // Jika Sensor Mendeteksi Orang Mendekati Tong Sampah dan Menjauhi Tong Sampah
+  if(distanceS1<=20 && distanceS1>0)
+  {
+    prevTime = currTime;
+    servoSampah.write(2250);
+  }
+  else if(distanceS1>20)
+  {
+    servoSampah.write(750);
+  }
 }
