@@ -14,20 +14,18 @@ float durationS1, distanceS1;
 #define trigg_pin2 9
 #define echo_pin2 8
 NewPing sensorDalam(trigg_pin2, echo_pin2, max_distance);
-float durationS2;
-int distanceS2;
+float durationS2, distanceS2;
 
 //Define or SetUp Servo Motor
 ServoTimer2 servoSampah;
 
 //Define or SetUp LCD
-LiquidCrystal_I2C lcd = LiquidCrystal_I2C(0x27,16,2);
+LiquidCrystal_I2C lcd (0x27,16,2);
 
-//Define or SetUp Timer/Counter, Interrupt, & Delay
-unsigned long prevTime = 0;
-unsigned long currTime = 0;
 void setup() 
 {
+  Serial.begin(9600);
+  
   //Inisialisasi Servo
   servoSampah.attach(5);
   servoSampah.write(750);
@@ -35,6 +33,7 @@ void setup()
   //Inisialisasi LCD
   lcd.init();
   lcd.backlight();
+  lcd.clear();
   lcd.setCursor(3, 0);
   lcd.print("TongSampah");
   lcd.setCursor(4, 1);
@@ -50,34 +49,34 @@ void setup()
   TCCR1B |= (1 << CS10)|(1 << CS12);
   TIMSK1 |= (1 << TOIE1);
   interrupts();
-
 }
 
 void loop() 
 {
-  unsigned long currTime = millis();
-  // Deteksi Jarak Dari Kedua Sensor
+  //Deteksi Jarak Dari Kedua Sensor
   durationS1 = sensorLuar.ping();
   distanceS1 = (durationS1 / 2) * 0.0343;
   durationS2 = sensorDalam.ping();
-  distanceS2 = (((((durationS2 / 2) * 0.0343)-10)/30)*100); //asumsi tinggi tong sampah 30 cm
+  distanceS2 = (durationS2 / 2) * 0.0343;
 
-  
-  if (distanceS2 <= 10) //asumsi tinggi tong sampah 30 cm
+  //Cetak kata pada LCD
+  if (distanceS2<=5 && distanceS2>0)
   {
+    Serial.println("Tong Sampah Penuh");
     lcd.setCursor(3, 0);
     lcd.print("Tong Sampah");
     lcd.setCursor(6, 1);
     lcd.print("Penuh");
     noInterrupts();
   }
-  else if (distanceS2 > 10) 
+  else
   {
+    Serial.println("Tong Sampah Tersedia");
     lcd.setCursor(3, 0);
-    lcd.print("Kapasitas:");
-    lcd.setCursor(6, 1);
-    lcd.print(distanceS2);
-    lcd.print("%");
+    lcd.print("Tong Sampah");
+    lcd.setCursor(4, 1);
+    lcd.print("Tersedia");
+    interrupts();
   }
 }
 
@@ -88,7 +87,6 @@ ISR(TIMER1_OVF_vect)
   // Jika Sensor Mendeteksi Orang Mendekati Tong Sampah dan Menjauhi Tong Sampah
   if(distanceS1<=20 && distanceS1>0)
   {
-    prevTime = currTime;
     servoSampah.write(2250);
   }
   else if(distanceS1>20)
