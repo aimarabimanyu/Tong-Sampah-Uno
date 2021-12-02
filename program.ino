@@ -60,24 +60,25 @@ void loop()
   distanceS2 = (durationS2 / 2) * 0.0343;
 
   //Cetak kata pada LCD
-  if (distanceS2<=5 && distanceS2>0)
+  if (distanceS2<=7 && distanceS2>0)
   {
     Serial.println("Tong Sampah Penuh");
+    lcd.clear();
     lcd.setCursor(3, 0);
     lcd.print("Tong Sampah");
     lcd.setCursor(6, 1);
     lcd.print("Penuh");
     noInterrupts();
   }
-  else
+  else if (distanceS2>7)
   {
     Serial.println("Tong Sampah Tersedia");
     lcd.setCursor(3, 0);
     lcd.print("Tong Sampah");
     lcd.setCursor(4, 1);
     lcd.print("Tersedia");
-    interrupts();
   }
+  interrupts();
 }
 
 ISR(TIMER1_OVF_vect)
